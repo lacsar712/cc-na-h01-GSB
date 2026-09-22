@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ shown.aid_code }}</h1>
+<p class="{{ shown.css }}">{{ shown.label }} · {{ shown.note }}</p>
+<p>实测光强 {{ shown.measured_cd }}，要求 {{ shown.required_cd }}，方位偏差 {{ shown.bearing_error_deg }} 度</p>
+<p>登记人 {{ shown.created_by }}</p>
+<p><a href="{% url 'list' %}">返回列表</a></p>
+{% endblock %}
