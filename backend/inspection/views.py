@@ -4,12 +4,30 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from inspection.models import Inspection
-from inspection.candela_pass_override import detail_blurb, list_badge, polish_write
 from inspection.rules import judge
+
+PASS_VERDICT = "合格"
 
 
 def _can_write(user) -> bool:
     return user.groups.filter(name="inspector").exists()
+
+
+def _badge(verdict: str) -> dict:
+    return {"css": "ok" if verdict == PASS_VERDICT else "bad", "label": verdict}
+
+
+def _detail_shown(row) -> dict:
+    return {
+        "css": "ok" if row.verdict == PASS_VERDICT else "bad",
+        "label": row.verdict,
+        "note": row.note,
+        "aid_code": row.aid_code,
+        "measured_cd": row.measured_cd,
+        "required_cd": row.required_cd,
+        "bearing_error_deg": row.bearing_error_deg,
+        "created_by": row.created_by,
+    }
 
 
 def health(_request):
@@ -54,7 +72,7 @@ def list_view(request):
                 "aid_code": row.aid_code,
                 "measured_cd": row.measured_cd,
                 "note": row.note,
-                "badge": list_badge(row.verdict),
+                "badge": _badge(row.verdict),
             }
         )
     return render(request, "list.html", {"rows": rows, "can_write": _can_write(request.user)})
@@ -63,7 +81,7 @@ def list_view(request):
 @login_required
 def detail_view(request, pk):
     row = get_object_or_404(Inspection, pk=pk)
-    return render(request, "detail.html", {"row": row, "shown": detail_blurb(row)})
+    return render(request, "detail.html", {"row": row, "shown": _detail_shown(row)})
 
 
 @login_required
@@ -84,7 +102,6 @@ def create_view(request):
             error = "请填编号和三项数值"
         else:
             verdict, note = judge(measured, required, bearing)
-            verdict, note, _meta = polish_write(measured, required, bearing, verdict, note)
             row = Inspection.objects.create(
                 aid_code=code,
                 measured_cd=measured,
